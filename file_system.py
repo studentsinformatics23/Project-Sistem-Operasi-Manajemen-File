@@ -60,3 +60,23 @@ class MiniFileSystem:
 
     def list_files(self):
         return list(self.index.keys())
+    
+    def truncate(self, filename):
+        if filename not in self.index:
+            return "File not found."
+
+        content = self.index[filename]['content']
+        needed = len(content) // 10 + 1
+        start = self.index[filename]['start_block']
+
+        if start is not None:
+            for i in range(start, start + needed):
+                if i < len(self.disk):
+                    self.disk[i] = None
+
+    # Reset metadata kecuali nama & waktu dibuat
+        self.index[filename]['start_block'] = None
+        self.index[filename]['size'] = 0
+        self.index[filename]['content'] = ''
+        self.index[filename]['timestamp'] = datetime.datetime.now().isoformat()
+        return f"File '{filename}' truncated."
