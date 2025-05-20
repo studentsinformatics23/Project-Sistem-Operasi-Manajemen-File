@@ -1,4 +1,6 @@
 import datetime
+import json
+import os
 
 class MiniFileSystem:
     def __init__(self, total_blocks=100):
@@ -80,3 +82,42 @@ class MiniFileSystem:
         self.index[filename]['content'] = ''
         self.index[filename]['timestamp'] = datetime.datetime.now().isoformat()
         return f"File '{filename}' truncated."
+    
+
+    def show_disk(self):
+        print("\nDisk Status (X = used, . = free):")
+        for i in range(0, len(self.disk), 10):
+            line = self.disk[i:i+10]
+            print(''.join(['X' if blk else '.' for blk in line]))
+
+    def show_metadata(self, filename):
+        if filename not in self.index:
+            return "File not found."
+
+        info = self.index[filename]  # ← inisialisasi variabel info
+
+        return (
+            f"\nMetadata for '{filename}':\n"
+            f"  Start Block : {info.get('start_block')}\n"
+            f"  Size        : {info.get('size')} block(s)\n"
+            f"  Timestamp   : {info.get('timestamp')}\n"
+            f"  Content     : '{info.get('content')}'"
+        )
+
+    def save_to_file(self, path='data/fs_dump.json'):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w') as f:
+            json.dump({
+                'index': self.index,
+                'disk': self.disk
+            }, f)
+        return "File system saved."
+
+    def load_from_file(self, path='data/fs_dump.json'):
+        if not os.path.exists(path):
+            return "No saved file system found."
+        with open(path, 'r') as f:
+            data = json.load(f)
+            self.index = data['index']
+            self.disk = data['disk']
+        return "File system loaded."
