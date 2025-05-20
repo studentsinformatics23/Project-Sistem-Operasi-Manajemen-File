@@ -5,12 +5,86 @@ import os
 class MiniFileSystem:
     def __init__(self, total_blocks=100):
         self.disk = [None] * total_blocks
-        self.index = {}
+        self.fs = {
+            'name' : '/',
+            'type' : 'dir',
+            'children' : {}
+        }
+
+        self.current_dir = self.fs
+
+    def get_current_path(self):
+        path = []
+
+        def find_path(node, target, curr_path):
+            if node == target:
+                path.extend(curr_path)
+                return True
+            if node['type'] == 'dir':
+                for name, child in node['children'].items():
+                    if find_path(child, target, curr_path + [name]):
+                        return True
+            return False
+
+        find_path(self.fs, self.current_dir, ['/'])  # root path starts with /
+        return '/' if len(path) == 1 else '/'.join(path)
+    
+    def mkdir(self, dirname):
+        if dirname in self.current_dir['children']:
+            return "Directory already exists."
+        self.current_dir['children'][dirname] = {
+            'name': dirname,
+            'type': 'dir',
+            'children': {}
+        }
+        return f"Directory '{dirname}' created."
+    
+    def cd(self, dirname):
+        if dirname == "..":
+            # Naik ke atas (jika bukan root)
+            if self.current_dir == self.fs:
+                return "Already at root directory."
+            path = self._find_parent(self.fs, self.current_dir)
+            if path:
+                self.current_dir = path
+                return "Moved up to parent directory."
+            else:
+                return "Parent not found."
+        elif dirname in self.current_dir['children']:
+            target = self.current_dir['children'][dirname]
+            if target['type'] == 'dir':
+                self.current_dir = target
+                return f"Entered directory '{dirname}'."
+            else:
+                return f"'{dirname}' is not a directory."
+        else:
+            return "Directory not found."
+
+    def ls(self):
+        if not self.current_dir['children']:
+            return "Directory is empty."
+        listing = []
+        for name, item in self.current_dir['children'].items():
+            icon = "[DIR]" if item['type'] == 'dir' else "[FILE]"
+            listing.append(f"{icon} {name}")
+        return "\n".join(listing)
+    
+    def _find_parent(self, current, target):
+        for name, child in current['children'].items():
+            if child == target:
+                return current
+            if child['type'] == 'dir':
+                found = self._find_parent(child, target)
+                if found:
+                    return found
+        return None
 
     def create(self, filename):
-        if filename in self.index:
+        if filename in self.current_dir['children']:
             return "File already exists."
-        self.index[filename] = {
+        self.current_dir['children'][filename] = {
+            'name': filename,
+            'type': 'file',
             'start_block': None,
             'size': 0,
             'timestamp': datetime.datetime.now().isoformat(),
@@ -19,69 +93,78 @@ class MiniFileSystem:
         return f"File '{filename}' created."
 
     def write(self, filename, data):
-        if filename not in self.index:
+        if filename not in self.current_dir['children']:
             return "File not found."
+        file = self.current_dir['children'][filename]
+        if file['type'] != 'file':
+            return f"'{filename}' is not a file."
 
-        # Cari blok kosong
         needed = len(data) // 10 + 1
         free_blocks = [i for i, blk in enumerate(self.disk) if blk is None]
         if len(free_blocks) < needed:
             return "Not enough space on disk."
 
-        # Simpan data
         for i in range(needed):
             chunk = data[i*10:(i+1)*10]
             self.disk[free_blocks[i]] = chunk
 
-        self.index[filename]['start_block'] = free_blocks[0]
-        self.index[filename]['size'] = needed
-        self.index[filename]['content'] = data
-        self.index[filename]['timestamp'] = datetime.datetime.now().isoformat()
+        file['start_block'] = free_blocks[0]
+        file['size'] = needed
+        file['content'] = data
+        file['timestamp'] = datetime.datetime.now().isoformat()
         return f"Data written to '{filename}'."
 
     def read(self, filename):
-        if filename not in self.index:
+        if filename not in self.current_dir['children']:
             return "File not found."
-        return self.index[filename]['content']
+        file = self.current_dir['children'][filename]
+        if file['type'] != 'file':
+            return f"'{filename}' is not a file."
+        return file['content']
 
     def delete(self, filename):
-        if filename not in self.index:
+        if filename not in self.current_dir['children']:
             return "File not found."
+        file = self.current_dir['children'][filename]
+        if file['type'] != 'file':
+            return f"'{filename}' is not a file."
 
-        # Hapus isi dari disk
-        content = self.index[filename]['content']
+        # Bebaskan blok
+        content = file['content']
         needed = len(content) // 10 + 1
-        start = self.index[filename]['start_block']
+        start = file['start_block']
         if start is not None:
             for i in range(start, start + needed):
                 if i < len(self.disk):
                     self.disk[i] = None
 
-        del self.index[filename]
+        del self.current_dir['children'][filename]
         return f"File '{filename}' deleted."
 
     def list_files(self):
         return list(self.index.keys())
     
-    def truncate(self, filename):
-        if filename not in self.index:
-            return "File not found."
+        def truncate(self, filename):
+            if filename not in self.current_dir['children']:
+                return "File not found."
+            file = self.current_dir['children'][filename]
+            if file['type'] != 'file':
+                return f"'{filename}' is not a file."
 
-        content = self.index[filename]['content']
-        needed = len(content) // 10 + 1
-        start = self.index[filename]['start_block']
+            content = file['content']
+            needed = len(content) // 10 + 1
+            start = file['start_block']
 
-        if start is not None:
-            for i in range(start, start + needed):
-                if i < len(self.disk):
-                    self.disk[i] = None
+            if start is not None:
+                for i in range(start, start + needed):
+                    if i < len(self.disk):
+                        self.disk[i] = None
 
-    # Reset metadata kecuali nama & waktu dibuat
-        self.index[filename]['start_block'] = None
-        self.index[filename]['size'] = 0
-        self.index[filename]['content'] = ''
-        self.index[filename]['timestamp'] = datetime.datetime.now().isoformat()
-        return f"File '{filename}' truncated."
+            file['start_block'] = None
+            file['size'] = 0
+            file['content'] = ''
+            file['timestamp'] = datetime.datetime.now().isoformat()
+            return f"File '{filename}' truncated."
     
 
     def show_disk(self):
@@ -91,18 +174,19 @@ class MiniFileSystem:
             print(''.join(['X' if blk else '.' for blk in line]))
 
     def show_metadata(self, filename):
-        if filename not in self.index:
+        if filename not in self.current_dir['children']:
             return "File not found."
-
-        info = self.index[filename]  # ← inisialisasi variabel info
+        file = self.current_dir['children'][filename]
+        if file['type'] != 'file':
+            return f"'{filename}' is not a file."
 
         return (
             f"\nMetadata for '{filename}':\n"
-            f"  Start Block : {info.get('start_block')}\n"
-            f"  Size        : {info.get('size')} block(s)\n"
-            f"  Timestamp   : {info.get('timestamp')}\n"
-            f"  Content     : '{info.get('content')}'"
-        )
+            f"  Start Block : {file.get('start_block')}\n"
+            f"  Size        : {file.get('size')} block(s)\n"
+            f"  Timestamp   : {file.get('timestamp')}\n"
+            f"  Content     : '{file.get('content')}'"
+    )
 
     def save_to_file(self, path='data/fs_dump.json'):
         os.makedirs(os.path.dirname(path), exist_ok=True)

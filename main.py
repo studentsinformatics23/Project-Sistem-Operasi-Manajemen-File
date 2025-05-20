@@ -14,6 +14,9 @@ while True:
     print("8. Show File Metadata")
     print("9. Save File System")
     print("10. Load File System")
+    print("11. Make Directory")
+    print("12. Change Directory")
+    print("13. List Directory")
     print("0. Exit")
     choice = input("Choose: ")
 
@@ -36,17 +39,28 @@ while True:
     elif choice == '5':
         print("Files:", fs.list_files())
     elif choice == '6':
+        print("Available files:", fs.list_files())
         fname = input("File name: ")
         print(fs.truncate(fname))
     elif choice == '7':
         fs.show_disk()
     elif choice == '8':
+        print("Available files:", fs.list_files())
         fname = input("File name: ")
         print(fs.show_metadata(fname))
     elif choice == '9':
         print(fs.save_to_file())
     elif choice == '10':
-        print(fs.load_from_file())        
+        print(fs.load_from_file())
+
+    elif choice == '11':
+        dname = input("Directory name: ")
+        print(fs.mkdir(dname))
+    elif choice == '12':
+        dname = input("Directory name (.. to go up): ")
+        print(fs.cd(dname))
+    elif choice == '13':
+        print(fs.ls())        
     elif choice == '0':
         break
     else:
