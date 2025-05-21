@@ -2,7 +2,13 @@
   "fs": {
     "name": "/",
     "type": "dir",
-    "children": {}
+    "children": {
+      "halo": {
+        "name": "halo",
+        "type": "dir",
+        "children": {}
+      }
+    }
   },
   "disk": [
     null,
@@ -106,5 +112,5 @@
     null,
     null
   ],
-  "current_path": "/"
+  "current_path": "//halo"
 }

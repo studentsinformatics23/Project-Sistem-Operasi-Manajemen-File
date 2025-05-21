@@ -142,23 +142,30 @@ class MiniFileSystem:
         return f"File '{filename}' deleted."
 
     def list_files(self):
-        return list(self.index.keys())
+        if not self.current_dir['children']:
+            return "No files or directories."
+        
+        output = []
+        for name, item in self.current_dir['children'].items():
+            icon = "[DIR]" if item['type'] == 'dir' else "[FILE]"
+            output.append(f"{icon} {name}")
+        return "\n".join(output)
     
-        def truncate(self, filename):
-            if filename not in self.current_dir['children']:
-                return "File not found."
-            file = self.current_dir['children'][filename]
-            if file['type'] != 'file':
-                return f"'{filename}' is not a file."
+    def truncate(self, filename):
+        if filename not in self.current_dir['children']:
+            return "File not found."
+        file = self.current_dir['children'][filename]
+        if file['type'] != 'file':
+            return f"'{filename}' is not a file."
 
-            content = file['content']
-            needed = len(content) // 10 + 1
-            start = file['start_block']
+        content = file['content']
+        needed = len(content) // 10 + 1
+        start = file['start_block']
 
-            if start is not None:
-                for i in range(start, start + needed):
-                    if i < len(self.disk):
-                        self.disk[i] = None
+        if start is not None:
+            for i in range(start, start + needed):
+                if i < len(self.disk):
+                    self.disk[i] = None
 
             file['start_block'] = None
             file['size'] = 0
@@ -190,18 +197,49 @@ class MiniFileSystem:
 
     def save_to_file(self, path='data/fs_dump.json'):
         os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        data = {
+            'fs': self.fs,
+            'disk': self.disk,
+            'current_path': self.get_current_path()
+        }
+
         with open(path, 'w') as f:
-            json.dump({
-                'index': self.index,
-                'disk': self.disk
-            }, f)
-        return "File system saved."
+            json.dump(data, f, indent=2)
+
+        return f"File system saved to '{path}'."
 
     def load_from_file(self, path='data/fs_dump.json'):
         if not os.path.exists(path):
             return "No saved file system found."
+
         with open(path, 'r') as f:
             data = json.load(f)
-            self.index = data['index']
+            self.fs = data['fs']
             self.disk = data['disk']
-        return "File system loaded."
+            # Pulihkan current_dir dari path
+            self.current_dir = self._get_dir_by_path(data.get('current_path', '/'))
+
+        return f"File system loaded from '{path}'."
+    
+    def list_files_only(self):
+        files = [
+            name for name, item in self.current_dir['children'].items()
+            if item['type'] == 'file'
+        ]
+        if not files:
+            return "No files available."
+        return ", ".join(files)
+    
+    def _get_dir_by_path(self, path_str):
+        if path_str == '/' or not path_str:
+            return self.fs
+
+        parts = path_str.strip('/').split('/')
+        curr = self.fs
+        for part in parts:
+            if part in curr['children'] and curr['children'][part]['type'] == 'dir':
+                curr = curr['children'][part]
+            else:
+                return self.fs  # fallback ke root jika gagal
+        return curr
