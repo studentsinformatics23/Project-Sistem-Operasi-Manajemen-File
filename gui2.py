@@ -65,12 +65,12 @@ class MiniFileSystemGUI:
         self.light_output_bg = "#f7fbff"
         self.light_status_bg = "#e6f0f7"
 
-        # Dark mode colors
-        self.dark_bg = "#2e2e2e"
-        self.dark_btn_bg = "#4a90e2"
-        self.dark_fg = "#ffffff"
-        self.dark_output_bg = "#1e1e1e"
-        self.dark_status_bg = "#2e2e2e"
+        # # Dark mode colors
+        # self.dark_bg = "#2e2e2e"
+        # self.dark_btn_bg = "#4a90e2"
+        # self.dark_fg = "#ffffff"
+        # self.dark_output_bg = "#1e1e1e"
+        # self.dark_status_bg = "#2e2e2e"
 
     def apply_colors(self):
         if self.dark_mode:
