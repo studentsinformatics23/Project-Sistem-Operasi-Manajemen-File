@@ -53,6 +53,8 @@ while True:
         print("Available files:", fs.list_files_only())
         fname = input("File name: ")
         print(fs.show_metadata(fname))
+
+    # Save and Load Data
     elif choice == '9':
         filename = input("Enter filename to save as (e.g., fs_backup1.json): ")
         fullpath = f"data/{filename}"
@@ -61,6 +63,8 @@ while True:
         filename = input("Enter dump file name (e.g., fs_dump.json): ")
         fullpath = f"data/{filename}"
         print(fs.load_from_file(fullpath))
+
+    # Directory Manager
     elif choice == '11':
         dname = input("Directory name: ")
         print(fs.mkdir(dname))
